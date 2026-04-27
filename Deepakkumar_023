@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Advanced Ticket Booking</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:'Segoe UI',sans-serif;
+}
+
+body{
+  background:linear-gradient(135deg,#141e30,#243b55);
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+/* Container */
+.container{
+  background:white;
+  width:420px;
+  padding:25px;
+  border-radius:15px;
+  box-shadow:0 15px 35px rgba(0,0,0,0.3);
+  animation:fadeIn 0.8s ease;
+}
+
+@keyframes fadeIn{
+  from{opacity:0; transform:translateY(20px);}
+  to{opacity:1; transform:translateY(0);}
+}
+
+h2{
+  text-align:center;
+  margin-bottom:20px;
+  color:#243b55;
+}
+
+/* Form */
+.form-group{
+  margin-bottom:15px;
+}
+
+input,select{
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  transition:0.3s;
+}
+
+input:focus,select:focus{
+  border-color:#243b55;
+  box-shadow:0 0 5px rgba(36,59,85,0.4);
+}
+
+/* Seats */
+.seats{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:8px;
+  margin:15px 0;
+}
+
+.seat{
+  padding:10px;
+  text-align:center;
+  background:#e0e0e0;
+  border-radius:8px;
+  cursor:pointer;
+  transition:0.3s;
+  font-weight:bold;
+}
+
+.seat:hover{
+  background:#90caf9;
+  transform:scale(1.05);
+}
+
+.seat.selected{
+  background:#4caf50;
+  color:white;
+  transform:scale(1.1);
+}
+
+/* Buttons */
+.btn{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:8px;
+  background:linear-gradient(135deg,#243b55,#141e30);
+  color:white;
+  font-size:16px;
+  cursor:pointer;
+  transition:0.3s;
+  margin-top:10px;
+}
+
+.btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 5px 15px rgba(0,0,0,0.3);
+}
+
+/* Result Box */
+.result{
+  margin-top:15px;
+  padding:12px;
+  border-radius:8px;
+  background:#e8f5e9;
+  color:#2e7d32;
+  display:none;
+  animation:fadeIn 0.5s ease;
+}
+
+/* Footer */
+.footer{
+  text-align:center;
+  margin-top:10px;
+  font-size:13px;
+  color:#777;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>🎟️ Book Ticket</h2>
+
+<form id="form">
+
+<div class="form-group">
+<input type="text" id="name" placeholder="Enter Name" required>
+</div>
+
+<div class="form-group">
+<select id="event" required>
+<option value="">Select Event</option>
+<option value="Movie">Movie</option>
+<option value="Concert">Concert</option>
+<option value="Bus">Bus</option>
+<option value="Train">Train</option>
+</select>
+</div>
+
+<div class="form-group">
+<input type="date" id="date" required>
+</div>
+
+<label><b>Select Seats:</b></label>
+<div class="seats" id="seats"></div>
+
+<button class="btn">Book Now</button>
+
+</form>
+
+<div class="result" id="result"></div>
+
+<button class="btn" onclick="downloadPDF()">Download Ticket</button>
+
+<div class="footer">Secure & Fast Booking</div>
+
+</div>
+
+<script>
+const seatContainer = document.getElementById("seats");
+let selectedSeats = [];
+
+// Create seats
+for(let i=1;i<=20;i++){
+  let seat = document.createElement("div");
+  seat.classList.add("seat");
+  seat.innerText = i;
+
+  seat.onclick = () => {
+    seat.classList.toggle("selected");
+
+    if(selectedSeats.includes(i)){
+      selectedSeats = selectedSeats.filter(s => s !== i);
+    } else {
+      selectedSeats.push(i);
+    }
+  };
+
+  seatContainer.appendChild(seat);
+}
+
+// Form submit
+document.getElementById("form").addEventListener("submit", function(e){
+  e.preventDefault();
+
+  let name = document.getElementById("name").value;
+  let event = document.getElementById("event").value;
+  let date = document.getElementById("date").value;
+
+  let price = {
+    Movie:150,
+    Concert:500,
+    Bus:200,
+    Train:300
+  };
+
+  let total = selectedSeats.length * price[event];
+
+  let booking = { name,event,date,seats:selectedSeats,total };
+
+  localStorage.setItem("booking", JSON.stringify(booking));
+
+  let result = document.getElementById("result");
+  result.style.display = "block";
+  result.innerHTML = `
+    <b>✅ Booking Confirmed</b><br><br>
+    Name: ${name}<br>
+    Event: ${event}<br>
+    Date: ${date}<br>
+    Seats: ${selectedSeats.join(", ")}<br>
+    Total: ₹${total}
+  `;
+});
+
+// PDF
+function downloadPDF(){
+  const { jsPDF } = window.jspdf;
+  let doc = new jsPDF();
+
+  let data = JSON.parse(localStorage.getItem("booking"));
+
+  if(!data){
+    alert("No booking found!");
+    return;
+  }
+
+  doc.text("Ticket Details",20,20);
+  doc.text(`Name: ${data.name}`,20,40);
+  doc.text(`Event: ${data.event}`,20,50);
+  doc.text(`Date: ${data.date}`,20,60);
+  doc.text(`Seats: ${data.seats}`,20,70);
+  doc.text(`Total: ₹${data.total}`,20,80);
+
+  doc.save("ticket.pdf");
+}
+</script>
+
+</body>
+</html>
